@@ -5,4 +5,4 @@ from django.db import models
 
 class Message(models.Model):
     text = models.TextField(max_length=1000)
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(auto_now_add=True)
