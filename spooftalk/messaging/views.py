@@ -9,7 +9,7 @@ from .models import Message
 class MessagesCountAPIView(APIView):
     def get(self, request, format=None):
         data = {
-            "messages_count": 50,
+            "messages_count": Message.objects.all().count(),
         }
         return Response(data, status=status.HTTP_200_OK)
 
