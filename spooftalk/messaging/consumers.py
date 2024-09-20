@@ -25,6 +25,7 @@ class MessengerConsumer(WebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
 
+        Message.objects.create(text=message)
         if (Message.objects.all().count() > 0):
             timestamp = Message.objects.last().timestamp.isoformat()
         else:
