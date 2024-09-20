@@ -16,51 +16,68 @@
     <input id="chat-message-submit" type="button" value="Send" />
     {{ room_name|json_script:"room-name" }}
     <script>
-      const roomName = JSON.parse(
-        document.getElementById("room-name").textContent,
-      );
+      let chatSocket = null;
+      let messageQueue = [];
 
-      const chatSocket = new WebSocket(
-        "ws://" + window.location.host + "/ws/messaging/",
-      );
-
-      chatSocket.onmessage = function (e) {
-        const data = JSON.parse(e.data);
-        var options = {
-          month: "short",
-          year: "numeric",
-          day: "numeric",
-          hour: "numeric",
-          minute: "numeric",
-          hour12: true,
-        };
-        const timestamp = new Date(data.timestamp).toLocaleString(
-          "en-US",
-          options,
+      function connectWebSocket() {
+        chatSocket = new WebSocket(
+          "ws://" + window.location.host + "/ws/messaging/",
         );
-        document.querySelector("#chat-log").value +=
-          "\n" + data.message + "  -----  " + timestamp + "\n";
-      };
 
-      chatSocket.onclose = function (e) {
-        console.error("Chat socket closed unexpectedly");
-      };
+        chatSocket.onopen = function (e) {
+          console.log("WebSocket connection established");
+          while (messageQueue.length > 0) {
+            const msg = messageQueue.shift();
+            chatSocket.send(JSON.stringify(msg));
+          }
+        };
 
-      document.querySelector("#chat-message-input").focus();
-      document.querySelector("#chat-message-input").onkeyup = function (e) {
-        if (e.key === "Enter") {
-          document.querySelector("#chat-message-submit").click();
-        }
-      };
+        chatSocket.onmessage = function (e) {
+          const data = JSON.parse(e.data);
+          var options = {
+            month: "short",
+            year: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: true,
+          };
+          const timestamp = new Date(data.timestamp).toLocaleString(
+            "en-US",
+            options,
+          );
+          document.querySelector("#chat-log").value +=
+            "\n" + data.message + "  -----  " + timestamp + "\n";
+        };
+
+        chatSocket.onclose = function (e) {
+          console.error(
+            "Chat socket closed unexpectedly. Reconnecting in 5 seconds...",
+          );
+          setTimeout(function () {
+            connectWebSocket();
+          }, 5000);
+        };
+
+        chatSocket.onerror = function (e) {
+          console.error("WebSocket error:", e);
+          chatSocket.close();
+        };
+      }
+
+      connectWebSocket();
 
       document.querySelector("#chat-message-submit").onclick = function (e) {
         const messageInputDom = document.querySelector("#chat-message-input");
         const message = messageInputDom.value;
-        chatSocket.send(
-          JSON.stringify({
-            message: message,
-          }),
-        );
+        const msg = { message: message };
+
+        if (chatSocket.readyState === WebSocket.OPEN) {
+          chatSocket.send(JSON.stringify(msg));
+        } else {
+          messageQueue.push(msg);
+          console.log("Message queued due to disconnected WebSocket");
+        }
         messageInputDom.value = "";
       };
     </script>

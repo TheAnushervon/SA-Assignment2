@@ -3,6 +3,7 @@ import json
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from messaging.models import Message
+from datetime import datetime
 
 
 class MessengerConsumer(WebsocketConsumer):
@@ -24,7 +25,11 @@ class MessengerConsumer(WebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
 
-        timestamp = Message.objects.last().timestamp.isoformat()
+        Message.objects.create(text=message)
+        if (Message.objects.all().count() > 0):
+            timestamp = Message.objects.last().timestamp.isoformat()
+        else:
+            timestamp = datetime.now().isoformat()
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name, {"type": "chat.message",
                                    "message": message, "timestamp": timestamp}
