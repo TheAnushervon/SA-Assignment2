@@ -1,3 +1,4 @@
+{% load tz %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -8,7 +9,7 @@
   <body>
     <textarea id="chat-log" cols="200" rows="20">
 {% for i in message %}
-{{ i.text, i.timestamp }}
+{{ i.text }}  -----  {{i.timestamp|timezone:"Europe/Moscow"}}
 {% endfor %}</textarea
     ><br />
     <input id="chat-message-input" type="text" size="100" /><br />
@@ -25,9 +26,20 @@
 
       chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
-        const timestamp = new Date(data.timestamp).toLocaleString("en-US");
+        var options = {
+          month: "short",
+          year: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          hour12: true,
+        };
+        const timestamp = new Date(data.timestamp).toLocaleString(
+          "en-US",
+          options,
+        );
         document.querySelector("#chat-log").value +=
-          "\n" + data.message + "                 Sent at: " + timestamp + "\n";
+          "\n" + data.message + "  -----  " + timestamp + "\n";
       };
 
       chatSocket.onclose = function (e) {
