@@ -9,6 +9,7 @@ To be able to run server locally:
 2. Install redis-server, if you have not any
 3. ```pip install requirements.txt```
 4. ```cd spooftalk```
+5. ```python manage.py migrate```
 5. ```python manage.py runserver```
 
 ### Endpoints
