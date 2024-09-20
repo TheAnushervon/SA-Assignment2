@@ -1,5 +1,6 @@
 
 # Create your tests here.
+import asyncio
 from messaging.consumers import MessengerConsumer
 from django.test import TransactionTestCase
 from channels.testing import WebsocketCommunicator
@@ -17,7 +18,6 @@ class TimeBehaviorTest(TestCase):
             start_time = time.time()
             response = client.get(
                 '/messages/count/')
-            print(response)
             end_time = time.time()
 
             response_times.append((end_time - start_time) * 1000)
@@ -37,7 +37,6 @@ class TimeBehaviorTest2(TransactionTestCase):
             MessengerConsumer.as_asgi(), "/ws/messaging/")
         connected, _ = await communicator.connect()
         self.assertTrue(connected)
-
         response_times = []
         total_requests = 100
 
@@ -56,6 +55,36 @@ class TimeBehaviorTest2(TransactionTestCase):
         response_times.sort()
         percentile_95_time = response_times[int(
             0.95 * len(response_times)) - 1]
+        print(percentile_95_time)
 
         self.assertTrue(percentile_95_time < 200,
                         f"95% of the requests took less than 200ms, but the 95th percentile was {percentile_95_time}ms")
+
+
+class RecoverabilityTest(TransactionTestCase):
+    async def test_server_recoverability(self):
+        communicator = WebsocketCommunicator(
+            MessengerConsumer.as_asgi(), "/ws/messaging/")
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        await communicator.send_json_to({'message': 'Message before server down'})
+        response = await communicator.receive_json_from()
+        print(response)
+        self.assertEqual(response['message'], 'Message before server down')
+
+        await communicator.disconnect()
+
+        await asyncio.sleep(1)
+
+        communicator = WebsocketCommunicator(
+            MessengerConsumer.as_asgi(), "/ws/messaging/")
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        await communicator.send_json_to({'message': 'Message after server up'})
+        response = await communicator.receive_json_from()
+        print(response)
+        self.assertEqual(response['message'], 'Message after server up')
+
+        await communicator.disconnect()
