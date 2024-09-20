@@ -24,12 +24,15 @@ class MessengerConsumer(WebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
 
-        Message.objects.create(text=message)
+        timestamp = Message.objects.last().timestamp.isoformat()
         async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name, {"type": "chat.message", "message": message}
+            self.room_group_name, {"type": "chat.message",
+                                   "message": message, "timestamp": timestamp}
         )
 
     def chat_message(self, event):
         message = event["message"]
+        timestamp = event["timestamp"]
 
-        self.send(text_data=json.dumps({"message": message}))
+        self.send(text_data=json.dumps(
+            {"message": message, "timestamp": timestamp}))

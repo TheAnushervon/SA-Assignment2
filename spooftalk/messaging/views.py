@@ -14,6 +14,10 @@ class MessagesCountAPIView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-def index(request):
+def messaging(request):
     queryset = Message.objects.all()
-    return render(request, 'index.html', {'message': queryset})
+    return render(request, 'messaging.html', {'message': queryset})
+
+
+def index(request):
+    return render(request, 'index.html')
